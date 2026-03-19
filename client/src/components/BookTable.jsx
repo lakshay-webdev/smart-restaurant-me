@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const timeSlots = [
   "6:00 PM",
@@ -13,28 +15,54 @@ const timeSlots = [
 
 export default function BookTable() {
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [guests, setGuests] = useState(2);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!time) {
-      alert("Please select a time slot");
+      toast.error("Please select a time slot");
       return;
     }
 
-    setSuccess(true);
+    if (!phone || phone.length !== 10) {
+      toast.error("Please enter a valid 10-digit phone number");
+      return;
+    }
 
-    setTimeout(() => {
-      setSuccess(false);
-      setName("");
-      setGuests(2);
-      setDate("");
-      setTime("");
-    }, 3000);
+    setLoading(true);
+
+    try {
+      await axios.post("http://localhost:5000/api/reservations", {
+        name,
+        phone,
+        guests,
+        date,
+        time
+      });
+
+      toast.success("✅ Reservation confirmed!");
+      setSuccess(true);
+
+      setTimeout(() => {
+        setSuccess(false);
+        setName("");
+        setPhone("");
+        setGuests(2);
+        setDate("");
+        setTime("");
+      }, 3000);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Reservation failed");
+      console.error("Reservation error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,6 +96,20 @@ export default function BookTable() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:border-amber-400 outline-none"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="text-sm text-gray-300">Phone Number</label>
+            <input
+              type="tel"
+              required
+              maxLength="10"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              placeholder="10-digit phone number"
               className="mt-2 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:border-amber-400 outline-none"
             />
           </div>
@@ -131,9 +173,10 @@ export default function BookTable() {
           {/* Submit */}
           <button
             type="submit"
-            className="w-full py-4 bg-amber-400 text-black rounded-full font-semibold hover:scale-105 transition shadow-lg shadow-amber-400/30"
+            disabled={loading}
+            className="w-full py-4 bg-amber-400 text-black rounded-full font-semibold hover:scale-105 transition shadow-lg shadow-amber-400/30 disabled:opacity-50"
           >
-            Confirm Reservation
+            {loading ? "Confirming..." : "Confirm Reservation"}
           </button>
 
           {success && (
@@ -161,6 +204,11 @@ export default function BookTable() {
             <p>
               <span className="text-white font-medium">Name:</span>{" "}
               {name || "—"}
+            </p>
+
+            <p>
+              <span className="text-white font-medium">Phone:</span>{" "}
+              {phone || "—"}
             </p>
 
             <p>

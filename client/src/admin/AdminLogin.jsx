@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import axios from "axios"
+import toast from "react-hot-toast"
 
 export default function AdminLogin() {
 
@@ -7,16 +9,32 @@ export default function AdminLogin() {
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
 
     e.preventDefault()
+    setLoading(true)
 
-    if (username === "admin" && password === "123456") {
-      localStorage.setItem("adminAuth", "true")
-      navigate("/admin")
-    } else {
-      alert("Invalid admin credentials")
+    try {
+      // Call backend API for admin authentication
+      const response = await axios.post("http://localhost:5000/api/admin/login", {
+        username,
+        password
+      })
+
+      if (response.data.token) {
+        localStorage.setItem("adminAuth", response.data.token)
+        toast.success("Login successful!")
+        navigate("/admin")
+      } else {
+        toast.error("Invalid credentials")
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Login failed")
+      console.error("Login error:", error)
+    } finally {
+      setLoading(false)
     }
 
   }
@@ -38,6 +56,7 @@ export default function AdminLogin() {
             placeholder="Username"
             value={username}
             onChange={(e)=>setUsername(e.target.value)}
+            required
             className="w-full p-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none"
           />
 
@@ -46,14 +65,16 @@ export default function AdminLogin() {
             placeholder="Password"
             value={password}
             onChange={(e)=>setPassword(e.target.value)}
+            required
             className="w-full p-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none"
           />
 
           <button
             type="submit"
-            className="w-full bg-amber-500 py-3 rounded-lg font-semibold text-black"
+            disabled={loading}
+            className="w-full bg-amber-500 py-3 rounded-lg font-semibold text-black disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
         </form>

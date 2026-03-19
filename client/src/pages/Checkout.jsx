@@ -95,7 +95,7 @@ export default function Checkout() {
           {cartItems.map(item=>(
 
             <div
-              key={item.id}
+              key={item._id || item.id}
               className="flex items-center justify-between border-b py-3"
             >
 

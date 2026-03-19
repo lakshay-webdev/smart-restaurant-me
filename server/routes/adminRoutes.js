@@ -3,7 +3,43 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const Reservation = require("../models/Reservation");
 const Menu = require("../models/Menu");
+const jwt = require("jsonwebtoken");
 const router = express.Router();
+
+// Admin Login
+router.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    // Check credentials (you should use environment variables for these)
+    const adminUsername = process.env.ADMIN_USERNAME || "admin";
+    const adminPassword = process.env.ADMIN_PASSWORD || "123456";
+
+    if (username === adminUsername && password === adminPassword) {
+      // Generate JWT token
+      const token = jwt.sign(
+        { role: "admin", username },
+        process.env.JWT_SECRET || "your-secret-key",
+        { expiresIn: "7d" }
+      );
+
+      res.json({
+        message: "Login successful",
+        token
+      });
+    } else {
+      res.status(401).json({ message: "Invalid credentials" });
+    }
+  } catch (err) {
+    console.error("Admin login error:", err);
+    res.status(500).json({ message: "Login failed" });
+  }
+});
 
 // Dashboard stats
 router.get("/stats", async (req, res) => {

@@ -33,7 +33,7 @@ export default function Payment() {
     // Razorpay Payment
     setLoading(true);
     const options = {
-      key: "rzp_test_SHwVlICvjFuJiH",
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SHwVlICvjFuJiH",
       amount: totalPrice * 100,
       currency: "INR",
       name: "LaCasa Restaurant",

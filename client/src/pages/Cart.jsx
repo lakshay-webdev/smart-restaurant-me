@@ -27,7 +27,7 @@ export default function Cart() {
 
           {cartItems.map((item) => (
             <div
-              key={item.id}
+              key={item._id || item.id}
               className="flex justify-between items-center border-b pb-4"
             >
               <div className="flex gap-4 items-center">
@@ -49,7 +49,7 @@ export default function Cart() {
 
                   <div className="flex items-center gap-3 mt-2">
                     <button
-                      onClick={() => decreaseQty(item.id)}
+                      onClick={() => decreaseQty(item._id || item.id)}
                       className="px-2 bg-gray-200 rounded"
                     >
                       -
@@ -58,7 +58,7 @@ export default function Cart() {
                     <span>{item.quantity}</span>
 
                     <button
-                      onClick={() => increaseQty(item.id)}
+                      onClick={() => increaseQty(item._id || item.id)}
                       className="px-2 bg-gray-200 rounded"
                     >
                       +
@@ -69,7 +69,7 @@ export default function Cart() {
               </div>
 
               <button
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => removeFromCart(item._id || item.id)}
                 className="text-red-500"
               >
                 <Trash2 size={18} />

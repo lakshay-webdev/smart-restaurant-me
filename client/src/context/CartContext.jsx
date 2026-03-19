@@ -7,12 +7,12 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (product) => {
-    const exist = cartItems.find((item) => item.id === product.id);
+    const exist = cartItems.find((item) => item._id === product._id || item.id === product.id);
 
     if (exist) {
       setCartItems(
         cartItems.map((item) =>
-          item.id === product.id
+          (item._id === product._id || item.id === product.id)
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
@@ -26,8 +26,8 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = (id) => {
-    const removedItem = cartItems.find((item) => item.id === id);
-    setCartItems(cartItems.filter((item) => item.id !== id));
+    const removedItem = cartItems.find((item) => item._id === id || item.id === id);
+    setCartItems(cartItems.filter((item) => item._id !== id && item.id !== id));
     if (removedItem) {
       toast.error(`${removedItem.name} is removed`);
     } else {
@@ -38,7 +38,7 @@ export function CartProvider({ children }) {
   const increaseQty = (id) => {
     setCartItems(
       cartItems.map((item) =>
-        item.id === id
+        (item._id === id || item.id === id)
           ? { ...item, quantity: item.quantity + 1 }
           : item
       )
@@ -49,7 +49,7 @@ export function CartProvider({ children }) {
     setCartItems(
       cartItems
         .map((item) =>
-          item.id === id
+          (item._id === id || item.id === id)
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )

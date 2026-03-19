@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "client/dist",
+  "devCommand": "cd client && npm run dev",
+  "env": {
+    "VITE_API_URL": "http://localhost:5001"
+  }
+}

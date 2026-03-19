@@ -47,6 +47,28 @@ async function sendOTPEmail(email, otp, purpose) {
   });
 }
 
+// Send login success email
+async function sendLoginSuccessEmail(email, userName) {
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#1a1a1a;border-radius:16px;color:#fff;">
+      <h2 style="color:#f59e0b;text-align:center;">Smart Restaurant</h2>
+      <p style="text-align:center;font-size:18px;margin:20px 0;">Welcome Back, <strong>${userName}!</strong></p>
+      <div style="background:#333;padding:20px;border-radius:12px;text-align:center;margin:20px 0;">
+        <p style="font-size:16px;margin:0;">You have successfully logged in to your account.</p>
+      </div>
+      <p style="text-align:center;color:#999;font-size:13px;margin-top:20px;">If this wasn't you, please change your password immediately.</p>
+      <p style="text-align:center;color:#f59e0b;font-size:12px;">Thank you for choosing Smart Restaurant!</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Smart Restaurant" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Smart Restaurant - Login Successful",
+    html
+  });
+}
+
 // ==================== REGISTER FLOW ====================
 
 // Step 1: Send OTP for registration
@@ -207,6 +229,14 @@ router.post("/login/verify-otp", async (req, res) => {
 
     // Clean up OTP
     await Otp.deleteMany({ email, purpose: "login" });
+
+    // Send login success email
+    try {
+      await sendLoginSuccessEmail(email, user.name);
+    } catch (emailErr) {
+      console.error("Failed to send login success email:", emailErr);
+      // Continue with login even if email fails
+    }
 
     const token = jwt.sign(
       { id: user._id, role: user.role },

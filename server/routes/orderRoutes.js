@@ -1,6 +1,70 @@
 const express = require("express")
+const nodemailer = require("nodemailer")
 const router = express.Router()
 const Order = require("../models/Order")
+
+// Nodemailer transporter for order emails
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+})
+
+// Send order confirmation email
+async function sendOrderConfirmationEmail(email, order) {
+  const itemsHtml = order.items.map(item => `
+    <tr style="border-bottom:1px solid #333;">
+      <td style="padding:12px;text-align:left;">${item.name}</td>
+      <td style="padding:12px;text-align:center;">x${item.quantity}</td>
+      <td style="padding:12px;text-align:right;">&#8377;${item.price}</td>
+    </tr>
+  `).join("")
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#1a1a1a;border-radius:16px;color:#fff;">
+      <h2 style="color:#f59e0b;text-align:center;">Smart Restaurant</h2>
+      <p style="text-align:center;font-size:18px;margin:20px 0;">Order Confirmation</p>
+      
+      <div style="background:#333;padding:20px;border-radius:12px;margin:20px 0;">
+        <p style="margin:8px 0;"><strong>Order ID:</strong> ${order._id}</p>
+        <p style="margin:8px 0;"><strong>Name:</strong> ${order.name}</p>
+        <p style="margin:8px 0;"><strong>Phone:</strong> ${order.phone}</p>
+        <p style="margin:8px 0;"><strong>Delivery Address:</strong> ${order.address}</p>
+      </div>
+
+      <p style="font-size:14px;font-weight:bold;color:#f59e0b;margin-top:20px;">Order Items:</p>
+      <table style="width:100%;border-collapse:collapse;margin:15px 0;">
+        <thead>
+          <tr style="background:#f59e0b;color:#000;">
+            <th style="padding:12px;text-align:left;">Item</th>
+            <th style="padding:12px;text-align:center;">Qty</th>
+            <th style="padding:12px;text-align:right;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div style="background:#333;padding:20px;border-radius:12px;margin:20px 0;text-align:right;">
+        <p style="margin:8px 0;font-size:16px;"><strong>Total Amount: &#8377;${order.totalAmount}</strong></p>
+        <p style="margin:8px 0;color:#f59e0b;font-size:14px;"><strong>Status: ${order.status}</strong></p>
+      </div>
+
+      <p style="text-align:center;color:#999;font-size:13px;margin-top:20px;">Thank you for your order! We'll notify you when it's ready for delivery.</p>
+      <p style="text-align:center;color:#f59e0b;font-size:12px;">Smart Restaurant Team</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Smart Restaurant" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Smart Restaurant - Order Confirmation #${order._id}`,
+    html
+  });
+}
 
 // Helper to escape HTML
 function escapeHtml(str) {
@@ -11,7 +75,11 @@ function escapeHtml(str) {
 // PLACE ORDER
 router.post("/", async (req, res) => {
   try {
-    const { name, phone, address, items, total } = req.body
+    const { name, phone, address, items, total, email } = req.body
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required for order confirmation" })
+    }
 
     const order = new Order({
       name,
@@ -24,11 +92,20 @@ router.post("/", async (req, res) => {
 
     await order.save()
 
+    // Send order confirmation email
+    try {
+      await sendOrderConfirmationEmail(email, order)
+    } catch (emailErr) {
+      console.error("Failed to send order confirmation email:", emailErr)
+      // Continue with order creation even if email fails
+    }
+
     res.json({
       message: "Order placed successfully",
       order
     })
   } catch (err) {
+    console.error("Order placement error:", err)
     res.status(500).json({ message: "Failed to place order" })
   }
 })

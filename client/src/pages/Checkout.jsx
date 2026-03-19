@@ -10,6 +10,7 @@ export default function Checkout() {
   const navigate = useNavigate()
 
   const [name,setName] = useState("")
+  const [email,setEmail] = useState("")
   const [phone,setPhone] = useState("")
   const [address,setAddress] = useState("")
 
@@ -43,6 +44,7 @@ export default function Checkout() {
 
       await axios.post("http://localhost:5000/api/orders",{
         name,
+        email,
         phone,
         address,
         items: cartItems,
@@ -158,6 +160,15 @@ export default function Checkout() {
             placeholder="Full Name"
             value={name}
             onChange={handleNameChange}
+            className="w-full p-3 border rounded-lg"
+            required
+          />
+
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e)=>setEmail(e.target.value)}
             className="w-full p-3 border rounded-lg"
             required
           />

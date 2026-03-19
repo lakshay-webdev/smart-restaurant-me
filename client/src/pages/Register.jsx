@@ -3,15 +3,17 @@ import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useRef } from "react";
 
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState(1); // 1 = form, 2 = OTP verify
   const [loading, setLoading] = useState(false);
+  const otpInputRefs = useRef([]);
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -43,11 +45,33 @@ export default function Register() {
     }
   };
 
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return; // Only numbers
+    
+    const newOtpDigits = [...otpDigits];
+    newOtpDigits[index] = value;
+    setOtpDigits(newOtpDigits);
+
+    // Auto-focus to next box
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    // Backspace to previous box
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const otp = otpDigits.join("");
+
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
 
-    if (!otp) {
-      toast.error("Please enter the OTP");
+    if (otp.length !== 6) {
+      toast.error("Please enter all 6 digits");
       return;
     }
 
@@ -79,6 +103,8 @@ export default function Register() {
         password,
       });
       toast.success("OTP resent to your email!");
+      setOtpDigits(["", "", "", "", "", ""]);
+      otpInputRefs.current[0]?.focus();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to resend OTP");
     } finally {
@@ -140,19 +166,23 @@ export default function Register() {
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <p className="text-center text-gray-300 text-sm mb-2">
+              <p className="text-center text-gray-300 text-sm mb-6">
                 OTP sent to <span className="text-amber-400">{email}</span>
               </p>
 
-              <div className="border border-amber-500/50 rounded-xl px-4 py-3">
-                <input
-                  type="text"
-                  placeholder="Enter 6-digit OTP"
-                  className="w-full bg-transparent outline-none text-white placeholder-gray-400 text-center text-xl tracking-[0.5em]"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  maxLength={6}
-                />
+              <div className="flex justify-center gap-2">
+                {otpDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => (otpInputRefs.current[index] = el)}
+                    type="text"
+                    maxLength="1"
+                    value={digit}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border-2 border-amber-500/50 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                  />
+                ))}
               </div>
 
               <button
@@ -166,7 +196,7 @@ export default function Register() {
               <div className="flex justify-between items-center">
                 <button
                   type="button"
-                  onClick={() => { setStep(1); setOtp(""); }}
+                  onClick={() => { setStep(1); setOtpDigits(["", "", "", "", "", ""]); }}
                   className="text-gray-400 text-sm hover:text-white transition"
                 >
                   ← Change Email

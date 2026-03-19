@@ -6,6 +6,7 @@ export default function Menu() {
 
   const { addToCart } = useCart();
   const [category, setCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const menuItems = [
     { id: 1, name: "Paneer Tikka", price: 220, category: "Starters", image: "/paneer-tikka.jpg" },
@@ -36,15 +37,27 @@ export default function Menu() {
 
   const filteredItems =
     category === "All"
-      ? menuItems
-      : menuItems.filter(item => item.category === category);
+      ? menuItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      : menuItems.filter(item => item.category === category && item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="px-4 py-10">
 
-      <h1 className="text-3xl font-serif text-center mb-8">
-        Our Menu
-      </h1>
+      <div className="flex justify-between items-center mb-8 gap-4">
+        <h1 className="text-3xl font-serif">
+          Our Menu
+        </h1>
+
+        <div className="flex-1 max-w-xs">
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 rounded-full border border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white text-gray-800 placeholder-gray-500"
+          />
+        </div>
+      </div>
 
       {/* Category Filters */}
       <div className="flex justify-center gap-3 mb-8 flex-wrap">

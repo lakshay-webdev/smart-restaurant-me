@@ -1,16 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Star, Plus, Minus } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
 const SPICE_OPTIONS = ["Mild", "Medium", "Spicy", "Extra Spicy"];
 
-const EXTRA_OPTIONS = [
-  { name: "Extra Cheese", price: 30 },
-  { name: "Extra Paneer", price: 50 },
-  { name: "Extra Gravy", price: 20 },
-  { name: "Double Portion", price: 80 },
-];
+const CATEGORY_EXTRAS = {
+  "Starters": [
+    { name: "Extra Chutney", price: 15 },
+    { name: "Extra Dip", price: 20 },
+    { name: "Double Portion", price: 80 },
+    { name: "Lemon & Onion Rings", price: 10 },
+  ],
+  "Main Course": [
+    { name: "Extra Gravy", price: 20 },
+    { name: "Extra Paneer", price: 50 },
+    { name: "Extra Butter", price: 15 },
+    { name: "Double Portion", price: 80 },
+  ],
+  "Rice & Biryani": [
+    { name: "Extra Raita", price: 25 },
+    { name: "Extra Salan", price: 20 },
+    { name: "Boiled Egg", price: 15 },
+    { name: "Double Portion", price: 80 },
+  ],
+  "Breads": [
+    { name: "Extra Butter", price: 10 },
+    { name: "Stuffed with Paneer", price: 30 },
+    { name: "With Garlic Topping", price: 10 },
+  ],
+  "Chinese": [
+    { name: "Extra Soy Sauce", price: 10 },
+    { name: "Extra Schezwan", price: 15 },
+    { name: "Add Paneer", price: 40 },
+    { name: "Double Portion", price: 80 },
+  ],
+  "Fast Food": [
+    { name: "Extra Cheese", price: 30 },
+    { name: "Extra Mayo", price: 15 },
+    { name: "Add Fries", price: 40 },
+    { name: "Upsize", price: 50 },
+  ],
+  "Beverages": [
+    { name: "Extra Sugar", price: 0 },
+    { name: "Add Ice Cream Scoop", price: 30 },
+    { name: "Large Size", price: 30 },
+  ],
+  "Desserts": [
+    { name: "Extra Ice Cream Scoop", price: 30 },
+    { name: "Chocolate Sauce", price: 20 },
+    { name: "Whipped Cream", price: 15 },
+    { name: "Double Portion", price: 60 },
+  ],
+};
 
 export default function ProductDetailModal({ item, onClose }) {
   const { addToCart, increaseQty } = useCart();
@@ -18,6 +60,12 @@ export default function ProductDetailModal({ item, onClose }) {
   const [spiceLevel, setSpiceLevel] = useState("Medium");
   const [extras, setExtras] = useState([]);
   const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    setExtras([]);
+    setQty(1);
+    setSpiceLevel("Medium");
+  }, [item]);
 
   if (!item) return null;
 
@@ -176,7 +224,7 @@ export default function ProductDetailModal({ item, onClose }) {
                 ✨ Add Extras
               </h4>
               <div className="space-y-2">
-                {EXTRA_OPTIONS.map((extra) => {
+                {(CATEGORY_EXTRAS[item.category] || CATEGORY_EXTRAS["Main Course"]).map((extra) => {
                   const selected = extras.find((e) => e.name === extra.name);
                   return (
                     <button

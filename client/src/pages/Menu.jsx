@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, ChevronUp } from "lucide-react";
+import { Search, X, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import FoodCard from "../components/FoodCard";
 import ProductDetailModal from "../components/ProductDetailModal";
@@ -111,6 +111,8 @@ export default function Menu() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState("default");
+  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const categoryRefs = useRef({});
   const categoryBarRef = useRef(null);
@@ -142,9 +144,10 @@ export default function Menu() {
     }
     if (vegOnly) items = items.filter((i) => i.isVeg);
     if (nonVegOnly) items = items.filter((i) => !i.isVeg);
+    items = items.filter((i) => i.price >= priceRange[0] && i.price <= priceRange[1]);
 
     return items;
-  }, [searchQuery, vegOnly, nonVegOnly]);
+  }, [searchQuery, vegOnly, nonVegOnly, priceRange]);
 
   // ── Group by category ──
   const groupedItems = useMemo(() => {
@@ -316,7 +319,95 @@ export default function Menu() {
               <option value="price-low" className="bg-[#1a1a2e]">Price: Low → High</option>
               <option value="price-high" className="bg-[#1a1a2e]">Price: High → Low</option>
             </select>
+
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition whitespace-nowrap ${
+                showFilters || priceRange[0] > 0 || priceRange[1] < 500
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                  : "bg-white/[0.06] border-white/10 text-white/50 hover:border-white/20"
+              }`}
+            >
+              <SlidersHorizontal size={14} />
+              <span className="hidden sm:inline">Filters</span>
+            </button>
           </div>
+
+          {/* ── Price Range Filter Panel ── */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-white/[0.06]">
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white/50 text-xs">Price Range</span>
+                      <span className="text-amber-400 text-xs font-semibold">₹{priceRange[0]} — ₹{priceRange[1]}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="500"
+                        step="10"
+                        value={priceRange[0]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val <= priceRange[1]) setPriceRange([val, priceRange[1]]);
+                        }}
+                        className="flex-1 accent-amber-500 h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="500"
+                        step="10"
+                        value={priceRange[1]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val >= priceRange[0]) setPriceRange([priceRange[0], val]);
+                        }}
+                        className="flex-1 accent-amber-500 h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick price buttons */}
+                  <div className="flex gap-2">
+                    {[
+                      { label: "Under ₹100", range: [0, 100] },
+                      { label: "₹100-250", range: [100, 250] },
+                      { label: "₹250+", range: [250, 500] },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        onClick={() => setPriceRange(p.range)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border transition ${
+                          priceRange[0] === p.range[0] && priceRange[1] === p.range[1]
+                            ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                            : "bg-white/[0.04] border-white/[0.06] text-white/40 hover:text-white/60"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPriceRange([0, 500])}
+                      className="px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium text-white/30 hover:text-white/50 transition"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Category Scroll Bar */}
           <div

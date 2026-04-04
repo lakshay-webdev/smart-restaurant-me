@@ -39,3 +39,33 @@ section[data-category] {
 .food-card-img.loaded {
   opacity: 1;
 }
+
+/* Range slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid #0b0b0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid #0b0b0b;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}

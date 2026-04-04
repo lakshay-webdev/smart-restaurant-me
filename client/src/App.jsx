@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom"
 import { useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 
 import Navbar from "./components/Navbar"
 import Footer from "./components/Footer"
@@ -24,6 +25,28 @@ import AdminLogin from "./admin/AdminLogin"
 import AdminDashboard from "./admin/AdminDashboard"
 import AdminMenu from "./admin/AdminMenu"
 
+/* ── Page transition variants ── */
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+}
+const pageTransition = { duration: 0.25, ease: "easeInOut" }
+
+function PageWrap({ children }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={pageTransition}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 /* ── Scroll to top on every route change ── */
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -31,6 +54,43 @@ function ScrollToTop() {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" })
   }, [pathname])
   return null
+}
+
+/* ── Animated Routes ── */
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        {/* Customer Routes */}
+        <Route path="/" element={<PageWrap><Home /></PageWrap>} />
+        <Route path="/menu" element={<PageWrap><Menu /></PageWrap>} />
+        <Route path="/cart" element={<PageWrap><Cart /></PageWrap>} />
+        <Route path="/checkout" element={<PageWrap><Checkout /></PageWrap>} />
+        <Route path="/login" element={<PageWrap><Login /></PageWrap>} />
+        <Route path="/register" element={<PageWrap><Register /></PageWrap>} />
+        <Route path="/payment" element={<PageWrap><Payment /></PageWrap>} />
+        <Route path="/success" element={<PageWrap><OrderSuccess /></PageWrap>} />
+        <Route path="/orders" element={<PageWrap><OrderHistory /></PageWrap>} />
+        <Route path="/profile" element={<PageWrap><Profile /></PageWrap>} />
+        <Route path="/tracking" element={<PageWrap><Tracking /></PageWrap>} />
+        <Route path="/book-table" element={<PageWrap><BookTable /></PageWrap>} />
+
+        {/* Admin Routes */}
+        <Route path="/admin-login" element={<PageWrap><AdminLogin /></PageWrap>} />
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <PageWrap><AdminDashboard /></PageWrap>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-menu" element={
+          <ProtectedRoute>
+            <PageWrap><AdminMenu /></PageWrap>
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </AnimatePresence>
+  )
 }
 
 function AppLayout() {
@@ -50,36 +110,7 @@ function AppLayout() {
 
       {/* Page Content — no top padding on homepage (hero goes behind navbar) */}
       <div className={isAdminPage ? "min-h-screen" : isHomePage ? "min-h-screen" : "pt-14 sm:pt-20 min-h-screen"}>
-        <Routes>
-
-          {/* Customer Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/menu" element={<Menu />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/success" element={<OrderSuccess />} />
-          <Route path="/orders" element={<OrderHistory />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/book-table" element={<BookTable />} />
-
-          {/* Admin Routes */}
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin-menu" element={
-            <ProtectedRoute>
-              <AdminMenu />
-            </ProtectedRoute>
-          } />
-
-        </Routes>
+        <AnimatedRoutes />
       </div>
 
       {/* Footer & Mobile Nav - only on customer pages */}

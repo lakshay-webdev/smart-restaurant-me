@@ -3,8 +3,16 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom"
 import { useCart } from "../context/CartContext"
 import toast from "react-hot-toast"
-import { motion } from "framer-motion"
-import { ShoppingBag, MapPin } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ShoppingBag, MapPin, Tag, X, Share2 } from "lucide-react"
+
+/* ── Available Coupons ── */
+const COUPONS = [
+  { code: "WELCOME20", discount: 20, type: "percent", minOrder: 200, maxDiscount: 100, description: "20% off on first order (max ₹100)" },
+  { code: "LACASA50", discount: 50, type: "flat", minOrder: 300, maxDiscount: 50, description: "Flat ₹50 off on orders above ₹300" },
+  { code: "FEAST100", discount: 100, type: "flat", minOrder: 500, maxDiscount: 100, description: "Flat ₹100 off on orders above ₹500" },
+  { code: "SAVE15", discount: 15, type: "percent", minOrder: 250, maxDiscount: 75, description: "15% off on orders above ₹250 (max ₹75)" },
+];
 
 export default function Checkout() {
 
@@ -15,6 +23,9 @@ export default function Checkout() {
   const [email,setEmail] = useState("")
   const [phone,setPhone] = useState("")
   const [address,setAddress] = useState("")
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [showCoupons, setShowCoupons] = useState(false)
 
   // Name validation (only alphabets)
   const handleNameChange = (e)=>{
@@ -33,7 +44,38 @@ export default function Checkout() {
   }
 
   const taxes = Math.round(totalPrice * 0.05)
-  const grandTotal = totalPrice + taxes
+  
+  // ── Coupon logic ──
+  const applyCoupon = (code) => {
+    const c = COUPONS.find((cp) => cp.code === code.toUpperCase().trim())
+    if (!c) { toast.error("Invalid coupon code"); return }
+    if (totalPrice < c.minOrder) { toast.error(`Minimum order ₹${c.minOrder} required`); return }
+    setAppliedCoupon(c)
+    setCouponCode(c.code)
+    toast.success(`Coupon ${c.code} applied!`)
+    setShowCoupons(false)
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    toast("Coupon removed")
+  }
+
+  const couponDiscount = appliedCoupon
+    ? appliedCoupon.type === "percent"
+      ? Math.min(Math.round(totalPrice * appliedCoupon.discount / 100), appliedCoupon.maxDiscount)
+      : appliedCoupon.discount
+    : 0
+
+  const grandTotal = totalPrice + taxes - couponDiscount
+
+  // ── WhatsApp share ──
+  const shareOnWhatsApp = () => {
+    const itemLines = cartItems.map((i) => `• ${i.name} x${i.quantity} — ₹${i.price * i.quantity}`).join("\n")
+    const msg = `🍽️ *LaCasa Order Summary*\n\n${itemLines}\n\n💰 Subtotal: ₹${totalPrice}\n📦 Delivery: FREE\n🏷️ Tax: ₹${taxes}${couponDiscount > 0 ? `\n🎟️ Discount: -₹${couponDiscount}` : ""}\n✅ *Total: ₹${grandTotal}*\n\nOrder at LaCasa! 🔥`
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")
+  }
 
   const handleOrder = async(e)=>{
 
@@ -221,6 +263,87 @@ export default function Checkout() {
 
               {/* Bill Breakdown */}
               <div className="border-t border-white/[0.06] mt-4 pt-4 space-y-2.5 text-sm">
+
+                {/* ── Coupon Section ── */}
+                <div className="mb-3">
+                  {!appliedCoupon ? (
+                    <div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                          <input
+                            type="text"
+                            placeholder="Coupon code"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            className="w-full pl-9 pr-3 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-amber-500/50 text-xs transition"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => applyCoupon(couponCode)}
+                          className="px-4 py-2.5 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-semibold hover:bg-amber-500/25 transition"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCoupons(!showCoupons)}
+                        className="text-amber-400/70 text-[11px] mt-2 hover:text-amber-400 transition"
+                      >
+                        {showCoupons ? "Hide coupons" : "View available coupons"}
+                      </button>
+
+                      <AnimatePresence>
+                        {showCoupons && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden mt-2 space-y-2"
+                          >
+                            {COUPONS.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => applyCoupon(c.code)}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl border transition text-xs ${
+                                  totalPrice >= c.minOrder
+                                    ? "bg-white/[0.04] border-white/[0.08] hover:border-amber-500/30 cursor-pointer"
+                                    : "bg-white/[0.02] border-white/[0.04] opacity-40 cursor-not-allowed"
+                                }`}
+                                disabled={totalPrice < c.minOrder}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-amber-400 font-mono font-bold tracking-wider">{c.code}</span>
+                                  {totalPrice < c.minOrder && (
+                                    <span className="text-white/30 text-[10px]">Min ₹{c.minOrder}</span>
+                                  )}
+                                </div>
+                                <p className="text-white/40 text-[10px] mt-0.5">{c.description}</p>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-green-400" />
+                        <div>
+                          <span className="text-green-400 text-xs font-bold">{appliedCoupon.code}</span>
+                          <span className="text-green-400/60 text-[10px] ml-2">-₹{couponDiscount} off</span>
+                        </div>
+                      </div>
+                      <button type="button" onClick={removeCoupon} className="text-white/40 hover:text-white transition">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-between text-white/40">
                   <span>Subtotal</span>
                   <span>₹{totalPrice}</span>
@@ -233,10 +356,26 @@ export default function Checkout() {
                   <span>Taxes (5%)</span>
                   <span>₹{taxes}</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span>Coupon Discount</span>
+                    <span>-₹{couponDiscount}</span>
+                  </div>
+                )}
                 <div className="border-t border-white/[0.06] pt-2.5 flex justify-between text-white font-bold text-base">
                   <span>Total</span>
                   <span className="text-amber-400">₹{grandTotal}</span>
                 </div>
+
+                {/* WhatsApp Share */}
+                <button
+                  type="button"
+                  onClick={shareOnWhatsApp}
+                  className="w-full flex items-center justify-center gap-2 mt-3 py-2.5 rounded-xl bg-green-600/15 border border-green-600/20 text-green-400 text-xs font-medium hover:bg-green-600/25 transition"
+                >
+                  <Share2 size={14} />
+                  Share on WhatsApp
+                </button>
               </div>
             </div>
           </motion.div>

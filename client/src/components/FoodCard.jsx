@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useCart } from "../context/CartContext";
 import { Star, Plus, Minus } from "lucide-react";
@@ -6,12 +6,20 @@ import { Star, Plus, Minus } from "lucide-react";
 export default function FoodCard({ item, index = 0, onDetailClick }) {
   const { cartItems, addToCart, increaseQty, decreaseQty } = useCart();
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [addBounce, setAddBounce] = useState(false);
 
   const itemId = item.id ?? item._id;
   const cartItem = cartItems.find(
     (ci) => (ci.id ?? ci._id) === itemId
   );
   const quantity = cartItem?.quantity || 0;
+
+  const handleAdd = () => {
+    addToCart(item);
+    setAddBounce(true);
+    setTimeout(() => setAddBounce(false), 400);
+  };
 
   return (
     <motion.div
@@ -26,13 +34,19 @@ export default function FoodCard({ item, index = 0, onDetailClick }) {
       {/* ── Image ── */}
       <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-amber-900/20 to-gray-900">
         {!imgError ? (
-          <img
-            src={item.image}
-            alt={item.name}
-            loading="lazy"
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
+          <>
+            <img
+              src={item.image}
+              alt={item.name}
+              loading="lazy"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${imgLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"}`}
+            />
+            {!imgLoaded && (
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 to-gray-800 animate-pulse" />
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl opacity-40">
             🍽️
@@ -51,6 +65,13 @@ export default function FoodCard({ item, index = 0, onDetailClick }) {
         {item.bestseller && (
           <div className="absolute top-2 left-2 bg-amber-500 text-black text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-md">
             Bestseller
+          </div>
+        )}
+
+        {/* Trending Badge */}
+        {item.rating >= 4.6 && !item.bestseller && (
+          <div className="absolute top-2 left-2 bg-orange-500 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-md flex items-center gap-1">
+            🔥 Trending
           </div>
         )}
 
@@ -88,12 +109,14 @@ export default function FoodCard({ item, index = 0, onDetailClick }) {
           {/* ADD / Qty Controls */}
           <div onClick={(e) => e.stopPropagation()}>
             {quantity === 0 ? (
-              <button
-                onClick={() => addToCart(item)}
+              <motion.button
+                onClick={handleAdd}
+                animate={addBounce ? { scale: [1, 1.2, 1] } : {}}
+                transition={{ duration: 0.3 }}
                 className="bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] sm:text-xs px-5 sm:px-5 py-2 sm:py-1.5 rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md shadow-amber-500/20 uppercase tracking-wide"
               >
                 Add
-              </button>
+              </motion.button>
             ) : (
               <div className="flex items-center bg-amber-500 rounded-lg overflow-hidden shadow-md shadow-amber-500/20">
                 <button

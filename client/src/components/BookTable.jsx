@@ -23,6 +23,8 @@ export default function BookTable() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -41,6 +43,7 @@ export default function BookTable() {
     try {
       const reservationData = {
         name,
+        email: user?.email || "",
         phone,
         guests,
         date,

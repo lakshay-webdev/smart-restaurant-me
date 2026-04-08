@@ -6,12 +6,12 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     console.log("POST /api/reservations - Request body:", JSON.stringify(req.body));
-    const { name, phone, guests, date, time } = req.body;
+    const { name, email, phone, guests, date, time } = req.body;
     if (!name || !phone || !guests || !date || !time) {
       console.log("Missing fields. Name:", name, "Phone:", phone, "Guests:", guests, "Date:", date, "Time:", time);
       return res.status(400).json({ message: "All fields are required" });
     }
-    const reservation = new Reservation({ name, phone, guests, date, time });
+    const reservation = new Reservation({ name, email: email || "", phone, guests, date, time });
     await reservation.save();
     console.log("Reservation created successfully:", reservation._id);
     res.json({ message: "Reservation created", reservation });
@@ -19,6 +19,16 @@ router.post("/", async (req, res) => {
     console.error("Reservation creation error:", err.message);
     console.error("Full error:", err);
     res.status(500).json({ message: "Failed to create reservation", error: err.message });
+  }
+});
+
+// Get reservations by user email
+router.get("/my/:email", async (req, res) => {
+  try {
+    const reservations = await Reservation.find({ email: req.params.email }).sort({ createdAt: -1 });
+    res.json(reservations);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch reservations" });
   }
 });
 

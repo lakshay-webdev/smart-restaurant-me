@@ -23,6 +23,7 @@ import Profile from "./pages/Profile"
 import Tracking from "./pages/Tracking"
 import BookTable from "./components/BookTable"
 import Favourites from "./pages/Favourites"
+import ForgotPassword from "./pages/ForgotPassword"
 
 import AdminLogin from "./admin/AdminLogin"
 import AdminDashboard from "./admin/AdminDashboard"
@@ -77,6 +78,7 @@ function AnimatedRoutes() {
         <Route path="/checkout" element={<PageWrap><Checkout /></PageWrap>} />
         <Route path="/login" element={<PageWrap><Login /></PageWrap>} />
         <Route path="/register" element={<PageWrap><Register /></PageWrap>} />
+        <Route path="/forgot-password" element={<PageWrap><ForgotPassword /></PageWrap>} />
         <Route path="/payment" element={<PageWrap><Payment /></PageWrap>} />
         <Route path="/success" element={<PageWrap><OrderSuccess /></PageWrap>} />
         <Route path="/orders" element={<PageWrap><OrderHistory /></PageWrap>} />

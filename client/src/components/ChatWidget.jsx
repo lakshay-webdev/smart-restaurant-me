@@ -58,12 +58,26 @@ export default function ChatWidget() {
   return (
     <>
       {/* Floating Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[55] bg-amber-500 text-black p-3.5 rounded-full shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95"
-      >
-        {open ? <X size={22} /> : <MessageCircle size={22} />}
-      </button>
+      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[55] flex items-center gap-2">
+        {!open && (
+          <motion.span
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-amber-500 text-black text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg hidden sm:block"
+          >
+            Chat with us
+          </motion.span>
+        )}
+        <button
+          onClick={() => setOpen(!open)}
+          className="relative bg-amber-500 text-black p-3.5 rounded-full shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95"
+        >
+          {!open && (
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0b0b0b] animate-pulse" />
+          )}
+          {open ? <X size={22} /> : <MessageCircle size={22} />}
+        </button>
+      </div>
 
       {/* Chat Window */}
       <AnimatePresence>

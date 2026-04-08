@@ -26,9 +26,15 @@ function generateOTP() {
 async function sendOTPEmail(email, otp, purpose) {
   const subject = purpose === "register"
     ? "LaCasa — Verify Your Email"
+    : purpose === "forgot-password"
+    ? "LaCasa — Reset Your Password"
     : "LaCasa — Login OTP";
 
-  const purposeText = purpose === "register" ? "complete your registration" : "log in to your account";
+  const purposeText = purpose === "register"
+    ? "complete your registration"
+    : purpose === "forgot-password"
+    ? "reset your password"
+    : "log in to your account";
 
   const html = `
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:500px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
@@ -334,6 +340,83 @@ router.post("/login/verify-otp", async (req, res) => {
     });
   } catch (err) {
     console.error("Verify login OTP error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ==================== FORGOT PASSWORD FLOW ====================
+
+// Step 1: Send OTP for password reset
+router.post("/forgot-password/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "No account found with this email" });
+
+    if (user.role === "blocked") {
+      return res.status(403).json({ message: "Your account has been blocked" });
+    }
+
+    const otp = generateOTP();
+
+    // Remove old OTPs
+    await Otp.deleteMany({ email, purpose: "forgot-password" });
+
+    await Otp.create({
+      email,
+      otp,
+      purpose: "forgot-password",
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    });
+
+    await sendOTPEmail(email, otp, "forgot-password");
+
+    res.json({ message: "OTP sent to your email" });
+  } catch (err) {
+    console.error("Forgot password OTP error:", err);
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+// Step 2: Verify OTP and reset password
+router.post("/forgot-password/verify-otp", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const otpRecord = await Otp.findOne({ email, otp, purpose: "forgot-password" });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await Otp.deleteMany({ email, purpose: "forgot-password" });
+      return res.status(400).json({ message: "OTP expired, please try again" });
+    }
+
+    // Hash new password and update
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await User.findOneAndUpdate({ email }, { password: hashed });
+
+    // Clean up OTP
+    await Otp.deleteMany({ email, purpose: "forgot-password" });
+
+    res.json({ message: "Password reset successfully! You can now login." });
+  } catch (err) {
+    console.error("Reset password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

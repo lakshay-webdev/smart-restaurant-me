@@ -1,60 +1,49 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { useRef } from "react";
 
-export default function Login() {
+export default function ForgotPassword() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const redirectTo = location.state?.from || "/";
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
-  const [step, setStep] = useState(1); // 1 = credentials, 2 = OTP verify
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState(1); // 1 = email, 2 = OTP, 3 = new password
   const [loading, setLoading] = useState(false);
   const otpInputRefs = useRef([]);
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      toast.error("Please fill all fields");
+    if (!email) {
+      toast.error("Please enter your email");
       return;
     }
 
     setLoading(true);
     try {
-      await axios.post("/api/auth/login/send-otp", {
-        email,
-        password,
-      });
-
+      await axios.post("/api/auth/forgot-password/send-otp", { email });
       toast.success("OTP sent to your email!");
       setStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      toast.error(err.response?.data?.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
   };
 
   const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return; // Only numbers
-    
+    if (!/^\d*$/.test(value)) return;
     const newOtpDigits = [...otpDigits];
     newOtpDigits[index] = value;
     setOtpDigits(newOtpDigits);
-
-    // Auto-focus to next box
     if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
-    // Backspace to previous box
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
     }
@@ -62,28 +51,42 @@ export default function Login() {
 
   const otp = otpDigits.join("");
 
-  const handleVerifyOTP = async (e) => {
+  const handleVerifyOTP = (e) => {
     e.preventDefault();
-
     if (otp.length !== 6) {
       toast.error("Please enter all 6 digits");
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await axios.post("/api/auth/login/verify-otp", {
+      await axios.post("/api/auth/forgot-password/verify-otp", {
         email,
         otp,
+        newPassword,
       });
-
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      toast.success("Login successful!");
-      navigate(redirectTo);
+      toast.success("Password reset successful! Please login.");
+      navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.message || "OTP verification failed");
+      toast.error(err.response?.data?.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
@@ -92,10 +95,7 @@ export default function Login() {
   const handleResendOTP = async () => {
     setLoading(true);
     try {
-      await axios.post("/api/auth/login/send-otp", {
-        email,
-        password,
-      });
+      await axios.post("/api/auth/forgot-password/send-otp", { email });
       toast.success("OTP resent to your email!");
       setOtpDigits(["", "", "", "", "", ""]);
       otpInputRefs.current[0]?.focus();
@@ -114,29 +114,25 @@ export default function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl font-serif mb-6 text-center text-white">
-            Login
+          <h2 className="text-3xl font-serif mb-2 text-center text-white">
+            Forgot Password
           </h2>
+          <p className="text-center text-gray-400 text-sm mb-6">
+            {step === 1 && "Enter your email to receive a reset code"}
+            {step === 2 && "Enter the OTP sent to your email"}
+            {step === 3 && "Set your new password"}
+          </p>
 
-          {step === 1 ? (
+          {/* Step 1: Email */}
+          {step === 1 && (
             <form onSubmit={handleSendOTP} className="space-y-4">
               <div className="border border-white/30 rounded-xl px-4 py-3">
                 <input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Enter your registered email"
                   className="w-full bg-transparent outline-none text-white placeholder-gray-400"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="border border-white/30 rounded-xl px-4 py-3">
-                <input
-                  type="password"
-                  placeholder="Enter your password"
-                  className="w-full bg-transparent outline-none text-white placeholder-gray-400"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
@@ -145,18 +141,15 @@ export default function Login() {
                 disabled={loading}
                 className="w-full bg-amber-500 text-black py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50"
               >
-                {loading ? "Verifying..." : "Send OTP"}
+                {loading ? "Sending..." : "Send OTP"}
               </button>
-
-              <div className="text-right">
-                <Link to="/forgot-password" className="text-amber-400 text-sm hover:underline">
-                  Forgot Password?
-                </Link>
-              </div>
             </form>
-          ) : (
+          )}
+
+          {/* Step 2: OTP Verification */}
+          {step === 2 && (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <p className="text-center text-gray-300 text-sm mb-6">
+              <p className="text-center text-gray-300 text-sm mb-4">
                 OTP sent to <span className="text-amber-400">{email}</span>
               </p>
 
@@ -180,7 +173,7 @@ export default function Login() {
                 disabled={loading || otp.length !== 6}
                 className="w-full bg-amber-500 text-black py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50"
               >
-                {loading ? "Verifying..." : "Verify & Login"}
+                Verify OTP
               </button>
 
               <div className="flex justify-between items-center">
@@ -203,15 +196,52 @@ export default function Login() {
             </form>
           )}
 
-          <p className="text-center text-gray-400 mt-6">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-amber-400 hover:underline">
-              Register
-            </Link>
-          </p>
+          {/* Step 3: New Password */}
+          {step === 3 && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="border border-white/30 rounded-xl px-4 py-3">
+                <input
+                  type="password"
+                  placeholder="New password (min 6 chars)"
+                  className="w-full bg-transparent outline-none text-white placeholder-gray-400"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
 
-          <p className="text-xs text-gray-500 mt-4 text-center">
-            Admin? <Link to="/admin-login" className="text-amber-400 hover:underline">Login here</Link>
+              <div className="border border-white/30 rounded-xl px-4 py-3">
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  className="w-full bg-transparent outline-none text-white placeholder-gray-400"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-amber-500 text-black py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50"
+              >
+                {loading ? "Resetting..." : "Reset Password"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="w-full text-gray-400 text-sm hover:text-white transition text-center"
+              >
+                ← Back to OTP
+              </button>
+            </form>
+          )}
+
+          <p className="text-center text-gray-400 mt-6">
+            Remember your password?{" "}
+            <Link to="/login" className="text-amber-400 hover:underline">
+              Login
+            </Link>
           </p>
         </motion.div>
       </div>
